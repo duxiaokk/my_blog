@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block title %}登录 | Ado_Jk{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{{ url_for('static', path='css/auth.css') }}">
+{% endblock %}
+
+{% block content %}
+<main class="auth-shell">
+    <section class="auth-card auth-card--split">
+        <div class="auth-card__visual">
+            <p class="auth-kicker">Welcome back</p>
+            <h1>登录到博客页面</h1>
+            <p class="auth-subtitle">登录后可以查看文章详情、评论、点赞</p>
+        </div>
+
+        <div class="auth-card__form-panel">
+            <form id="login-form" class="auth-form">
+                <label>
+                    <span>用户名</span>
+                    <input type="text" name="username" required autocomplete="username" placeholder="输入用户名">
+                </label>
+                <label>
+                    <span>密码</span>
+                    <input type="password" name="password" required autocomplete="current-password" placeholder="输入密码">
+                </label>
+                <button type="submit" class="auth-button">登录</button>
+            </form>
+
+            <p class="auth-note">还没有账号？<a href="/register-page">去注册</a></p>
+            <p id="login-status" class="auth-status"></p>
+        </div>
+    </section>
+</main>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{{ url_for('static', path='js/login.js') }}"></script>
+{% endblock %}

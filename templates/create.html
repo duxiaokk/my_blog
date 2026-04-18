@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+
+{% block title %}发布文章 | Ado_Jk{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{{ url_for('static', path='css/create.css') }}">
+<style>
+    .create-form select {
+        width: 100%;
+        border: 1px solid var(--border-color);
+        border-radius: 16px;
+        padding: 14px 16px;
+        background: #fff;
+        color: var(--text-main);
+        font: inherit;
+        outline: none;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .create-form select:focus {
+        border-color: var(--accent);
+        box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.12);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<main class="create-shell container">
+    <section class="create-card">
+        <div class="create-head">
+            <h1>发布文章</h1>
+            <p>填写标题、正文，并上传封面图片后即可发布。</p>
+        </div>
+
+        <form class="create-form" method="post" action="/handle-create-post" enctype="multipart/form-data">
+            <label>
+                <span>标题</span>
+                <input type="text" name="title" required maxlength="255" placeholder="输入文章标题">
+            </label>
+            <label>
+                <span>技术标签（可选）</span>
+                <select name="tech_tag">
+                    <option value="">不归类到技术栈</option>
+                    {% for tag in tech_tags or [] %}
+                        <option value="{{ tag }}" {% if preselected_tech_tag == tag %}selected{% endif %}>{{ tag }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+            <label>
+                <span>封面图片</span>
+                <input type="file" name="image" accept="image/*">
+            </label>
+            <label>
+                <span>正文</span>
+                <textarea name="content" rows="14" required placeholder="写下文章内容"></textarea>
+            </label>
+            <div class="create-actions">
+                <a class="create-back" href="/">返回首页</a>
+                <button type="submit" class="create-submit">发布文章</button>
+            </div>
+        </form>
+    </section>
+</main>
+{% endblock %}

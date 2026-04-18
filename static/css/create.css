@@ -1,0 +1,104 @@
+.create-shell {
+    padding-top: 132px;
+    padding-bottom: 72px;
+}
+
+.create-card {
+    max-width: 920px;
+    margin: 0 auto;
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid var(--border-color);
+    border-radius: 24px;
+    box-shadow: var(--shadow-hover);
+    padding: 32px;
+}
+
+.create-head h1 {
+    font-size: 2.2rem;
+    margin-bottom: 10px;
+}
+
+.create-head p {
+    color: var(--text-muted);
+    margin-bottom: 28px;
+}
+
+.create-form {
+    display: grid;
+    gap: 18px;
+}
+
+.create-form label {
+    display: grid;
+    gap: 8px;
+    font-size: 0.95rem;
+    font-weight: 600;
+}
+
+.create-form input,
+.create-form textarea {
+    width: 100%;
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    padding: 14px 16px;
+    background: #fff;
+    color: var(--text-main);
+    font: inherit;
+    outline: none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.create-form input[type="file"] {
+    padding: 12px 14px;
+}
+
+.create-form textarea {
+    resize: vertical;
+    min-height: 280px;
+    line-height: 1.8;
+}
+
+.create-form input:focus,
+.create-form textarea:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.12);
+}
+
+.create-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+}
+
+.create-back {
+    color: var(--text-muted);
+    font-weight: 600;
+}
+
+.create-submit {
+    border: 0;
+    border-radius: 999px;
+    padding: 12px 18px;
+    background: var(--text-main);
+    color: #fff;
+    font-weight: 800;
+    cursor: pointer;
+    transition: var(--transition-smooth);
+}
+
+.create-submit:hover {
+    background: var(--accent);
+    transform: translateY(-1px);
+}
+
+@media (max-width: 768px) {
+    .create-card {
+        padding: 24px;
+    }
+
+    .create-actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+}

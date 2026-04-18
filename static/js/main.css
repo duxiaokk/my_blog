@@ -1,0 +1,167 @@
+import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+
+// 动画变体配置
+const fadeUpVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" } }
+};
+
+const staggerContainer = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { staggerChildren: 0.1 }
+  }
+};
+
+export default function MinimalBlog() {
+  const [scrolled, setScrolled] = useState(false);
+
+  // 监听滚动以改变导航栏样式
+  useEffect(() => {
+    const handleScroll = () => setScrolled(window.scrollY > 20);
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  return (
+    <div className="min-h-screen bg-[#f9fafb] text-[#111827] font-sans selection:bg-[#3b82f6]/20">
+      
+      {/* 导航栏 */}
+      <motion.nav 
+        initial={{ y: -100 }}
+        animate={{ y: 0 }}
+        transition={{ duration: 0.5, ease: "easeOut" }}
+        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+          scrolled ? 'bg-[#f9fafb]/80 backdrop-blur-md border-b border-gray-200/50 shadow-sm' : 'bg-transparent'
+        }`}
+      >
+        <div className="max-w-6xl mx-auto px-6 py-4 flex justify-between items-center">
+          <div className="text-xl font-bold tracking-tight tracking-tighter cursor-pointer">
+            Kalyx<span className="text-[#3b82f6]">.</span>
+          </div>
+          <div className="hidden md:flex space-x-8 text-sm font-medium text-[#6b7280]">
+            <a href="#" className="hover:text-[#111827] transition-colors duration-200">Articles</a>
+            <a href="#" className="hover:text-[#111827] transition-colors duration-200">Projects</a>
+            <a href="#" className="hover:text-[#111827] transition-colors duration-200">About</a>
+          </div>
+          <button className="px-5 py-2 text-sm font-medium text-white bg-[#111827] rounded-full hover:bg-[#3b82f6] transition-colors duration-300 shadow-sm">
+            Subscribe
+          </button>
+        </div>
+      </motion.nav>
+
+      {/* 主体内容 */}
+      <main className="max-w-6xl mx-auto px-6 pt-32 pb-20 flex flex-col lg:flex-row gap-16">
+        
+        {/* 左侧文章列表 */}
+        <div className="lg:w-2/3">
+          <motion.header 
+            initial="hidden" 
+            animate="visible" 
+            variants={fadeUpVariants}
+            className="mb-16"
+          >
+            <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight leading-tight mb-4">
+              Writing & <br className="hidden md:block"/> Thinking
+            </h1>
+            <p className="text-lg text-[#6b7280] max-w-xl leading-relaxed">
+              Sharing thoughts on software engineering, minimal design, and the journey of building digital products.
+            </p>
+          </motion.header>
+
+          <motion.div 
+            variants={staggerContainer}
+            initial="hidden"
+            animate="visible"
+            className="grid grid-cols-1 md:grid-cols-2 gap-8"
+          >
+            {POSTS.map((post) => (
+              <motion.article 
+                key={post.id}
+                variants={fadeUpVariants}
+                whileHover={{ y: -4, scale: 1.01 }}
+                className="group flex flex-col bg-[#f3f4f6] rounded-[16px] overflow-hidden cursor-pointer border border-transparent hover:border-gray-200 hover:shadow-lg hover:shadow-gray-200/50 transition-all duration-300"
+              >
+                <div className="h-48 overflow-hidden">
+                  <img 
+                    src={post.image} 
+                    alt={post.title} 
+                    className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-500 ease-out"
+                  />
+                </div>
+                <div className="p-6 flex flex-col flex-grow">
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-xs font-semibold text-[#3b82f6] uppercase tracking-wider">{post.category}</span>
+                    <span className="text-xs text-[#6b7280]">{post.date}</span>
+                  </div>
+                  <h2 className="text-xl font-bold mb-3 group-hover:text-[#3b82f6] transition-colors duration-200 leading-snug">
+                    {post.title}
+                  </h2>
+                  <p className="text-sm text-[#6b7280] line-clamp-3 leading-relaxed flex-grow">
+                    {post.excerpt}
+                  </p>
+                </div>
+              </motion.article>
+            ))}
+          </motion.div>
+        </div>
+
+        {/* 右侧侧边栏 */}
+        <aside className="lg:w-1/3">
+          <motion.div 
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.6, delay: 0.3 }}
+            className="sticky top-32 space-y-12"
+          >
+            {/* 关于卡片 */}
+            <div className="bg-[#f3f4f6] p-8 rounded-[16px]">
+              <h3 className="text-lg font-bold mb-4">About Me</h3>
+              <p className="text-sm text-[#6b7280] leading-relaxed mb-6">
+                Hi, I'm Ado_Jk.A backend developer focused on FastAPI, MySQL, and system design.I 
+              </p>
+              <button className="w-full py-2.5 text-sm font-medium text-[#111827] bg-white rounded-lg border border-gray-200 hover:border-[#3b82f6] hover:text-[#3b82f6] transition-colors duration-200">
+                More about me
+              </button>
+            </div>
+
+            {/* 标签云 */}
+            <div>
+              <h3 className="text-lg font-bold mb-5 flex items-center">
+                Popular Topics
+              </h3>
+              <div className="flex flex-wrap gap-2">
+                {TAGS.map(tag => (
+                  <span 
+                    key={tag} 
+                    className="px-3 py-1.5 text-xs font-medium text-[#6b7280] bg-[#f3f4f6] rounded-md cursor-pointer hover:bg-[#3b82f6] hover:text-white transition-colors duration-200"
+                  >
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </motion.div>
+        </aside>
+
+      </main>
+
+      {/* 极简页脚 */}
+      <footer className="border-t border-gray-200/60 mt-12">
+        <div className="max-w-6xl mx-auto px-6 py-8 flex flex-col md:flex-row justify-between items-center gap-4">
+          <p className="text-sm text-[#6b7280]">
+            © 2026 Kalyx. Minimalist layout crafted with care.
+          </p>
+          <div className="flex space-x-6 text-sm font-medium text-[#6b7280]">
+            <a href="https://www.youtube.com/@DrizzleNote" target="_blank" rel="noopener noreferrer" className="hover:text-[#111827] transition-colors">YouTube</a>
+            <a href="https://github.com/duxiaokk" target="_blank" rel="noopener noreferrer" className="hover:text-[#111827] transition-colors">GitHub</a>
+            <a href="#" className="hover:text-[#111827] transition-colors">RSS</a>
+          </div>
+        </div>
+      </footer>
+
+    </div>
+  );
+}

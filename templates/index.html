@@ -1,0 +1,258 @@
+﻿{% extends "base.html" %}
+
+{% block title %}Ado_Jk | Minimalist Blog{% endblock %}
+
+{% block extra_head %}
+<style>
+    .tech-posts {
+        margin-top: 36px;
+        display: grid;
+        gap: 22px;
+    }
+
+    .tech-posts__subtitle {
+        margin-bottom: 0;
+    }
+
+    .tech-posts__groups {
+        display: grid;
+        gap: 18px;
+    }
+
+    .tech-post-group {
+        padding: 22px 24px;
+        border: 1px solid var(--border-color);
+        border-radius: 20px;
+        background: rgba(255, 255, 255, 0.75);
+        box-shadow: var(--shadow-subtle);
+    }
+
+    .tech-post-group__head {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        gap: 12px;
+        margin-bottom: 16px;
+    }
+
+    .tech-post-group__head h3 {
+        font-size: 1.15rem;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+    }
+
+    .tech-post-group__head span,
+    .tech-post-group__empty {
+        color: var(--text-muted);
+        font-size: 0.92rem;
+    }
+
+    .tech-post-list {
+        display: grid;
+        gap: 10px;
+    }
+
+    .tech-post-item {
+        display: flex;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 14px 16px;
+        border-radius: 14px;
+        background: rgba(249, 250, 251, 0.92);
+        border: 1px solid rgba(229, 231, 235, 0.85);
+        transition: var(--transition-smooth);
+    }
+
+    .tech-post-item:hover {
+        border-color: var(--accent);
+        transform: translateX(2px);
+    }
+
+    .tech-post-item__title {
+        font-weight: 700;
+        color: var(--text-main);
+    }
+
+    .tech-post-item__meta {
+        flex: 0 0 auto;
+        color: var(--text-muted);
+        font-size: 0.88rem;
+    }
+
+    @media (max-width: 992px) {
+        .tech-post-item {
+            flex-direction: column;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .tech-post-group {
+            padding: 18px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<main class="container main-content {% if mode in ['about', 'archive'] %}main-content--single{% endif %}{% if mode == 'tech' %} main-content--tech{% endif %}">
+    {% if mode == 'about' %}
+        <section class="content-feed">
+            <header class="reveal">
+                <h1 class="section-title">About</h1>
+                <p class="section-subtitle">A personal space for backend notes, design experiments, and small product ideas.</p>
+            </header>
+            <div class="sidebar-widget reveal">
+                <h3 class="widget-title">Ado_Jk</h3>
+                <p class="widget-text">Python backend, FastAPI, SQLAlchemy, and lightweight product thinking.</p>
+            </div>
+        </section>
+    {% elif mode == 'archive' %}
+        <section class="content-feed">
+            <header class="reveal">
+                <h1 class="section-title">Archive</h1>
+                <p class="section-subtitle">Articles grouped by month.</p>
+            </header>
+            <div class="archive-list">
+                {% for item in archives or [] %}
+                    <span class="archive-pill">{{ item.month }} 路 {{ item.count }}</span>
+                {% endfor %}
+            </div>
+        </section>
+    {% elif mode == 'tech' %}
+        <section class="content-feed content-feed--tech">
+            <header class="reveal">
+                <h1 class="section-title">Outline<br>Matrix</h1>
+                <p class="section-subtitle">Four core pieces of the stack, drawn as quiet line frames.</p>
+            </header>
+
+            <div class="tech-grid">
+                {% for item in tech_stack or [] %}
+                    <article class="tech-card reveal delay-{{ (loop.index0 % 4) + 1 }}">
+                        <div class="tech-card__top">
+                            <div class="tech-card__mark" aria-hidden="true">{{ item.mark }}</div>
+                            <h2 class="tech-card__title">{{ item.name }}</h2>
+                        </div>
+                        <div class="tech-card__rule" aria-hidden="true"></div>
+                        <div class="tech-card__footer">
+                            <div class="tech-card__archive">
+                                <span>Archive</span>
+                                <strong>Articles: {{ item.article_count }}</strong>
+                            </div>
+                            <div class="tech-card__publish">
+                                <span class="tech-card__dot" aria-hidden="true"></span>
+                                <a class="tech-card__plus" href="{{ item.action_url }}" data-publish-label="{{ item.publish_label }}" aria-label="{{ item.publish_label }}">+</a>
+                            </div>
+                        </div>
+                    </article>
+                {% endfor %}
+            </div>
+
+            <div class="tech-posts">
+                <header class="tech-posts__header reveal">
+                    <h2 class="section-title tech-posts__title">Posts by Stack</h2>
+                    <p class="section-subtitle tech-posts__subtitle">Technical articles stay here, grouped by their tag.</p>
+                </header>
+
+                <div class="tech-posts__groups">
+                    {% for tag in tech_tags or [] %}
+                        {% set posts = tech_posts_by_tag[tag] if tech_posts_by_tag is defined else [] %}
+                        <section class="tech-post-group reveal delay-{{ (loop.index0 % 4) + 1 }}">
+                            <div class="tech-post-group__head">
+                                <h3>{{ tag }}</h3>
+                                <span>{{ posts|length }} articles</span>
+                            </div>
+                            {% if posts %}
+                                <div class="tech-post-list">
+                                    {% for post in posts %}
+                                        <a class="tech-post-item" href="{{ url_for('post_detail', post_id=post.id) }}">
+                                            <span class="tech-post-item__title">{{ post.title }}</span>
+                                            <span class="tech-post-item__meta">{{ post.created_at.strftime('%Y-%m-%d') if post.created_at else '' }}</span>
+                                        </a>
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                <p class="tech-post-group__empty">暂时还没有该技术栈的文章。</p>
+                            {% endif %}
+                        </section>
+                    {% endfor %}
+                </div>
+            </div>
+        </section>
+    {% else %}
+        <section class="content-feed">
+            <header class="reveal">
+                <h1 class="section-title">Writing &amp;<br>Thinking</h1>
+                <p class="section-subtitle">
+                    “在代码的逻辑中寻找艺术，在文字的碎屑里记录生长。”<br>
+                    “Coding with heart, thinking with soul.”
+                </p>
+            </header>
+
+            <div class="articles-grid">
+                {% if featured_posts is defined and featured_posts %}
+                    {% for post in featured_posts %}
+                        <a href="{{ url_for('post_detail', post_id=post.id) }}" class="article-card reveal delay-{{ (loop.index0 % 4) + 1 }}">
+                            {% if post.image_path %}
+                                <div class="card-image-wrapper">
+                                    {% set image_name = post.image_path.rsplit('/', 1)[-1].rsplit('\\', 1)[-1] %}
+                                    <img src="{{ url_for('static_images', path=image_name) }}" alt="{{ post.title }}">
+                                </div>
+                            {% endif %}
+                            <div class="card-content">
+                                <div class="card-meta">
+                                    <span class="card-category">Article</span>
+                                    <span class="card-date">{{ post.created_at.strftime('%Y-%m-%d') if post.created_at else '' }}</span>
+                                </div>
+                                <h2 class="card-title">{{ post.title }}</h2>
+                                <p class="card-excerpt">{{ post.content[:140] if post.content else '' }}</p>
+                            </div>
+                        </a>
+                    {% endfor %}
+                {% endif %}
+            </div>
+
+            {% if mode == 'list' and total_pages is defined and total_pages > 1 %}
+            <div class="pagination">
+                {% if has_prev %}
+                    <a class="pagination-btn" href="{{ pagination_base }}{{ page - 1 }}">涓婁竴椤?/a>
+                {% else %}
+                    <span class="pagination-btn is-disabled">涓婁竴椤?/span>
+                {% endif %}
+                <span class="pagination-info">Page {{ page }} / {{ total_pages }}</span>
+                {% if has_next %}
+                    <a class="pagination-btn" href="{{ pagination_base }}{{ page + 1 }}">涓嬩竴椤?/a>
+                {% else %}
+                    <span class="pagination-btn is-disabled">涓嬩竴椤?/span>
+                {% endif %}
+            </div>
+            {% endif %}
+        </section>
+
+        <aside class="sidebar">
+            <div class="sidebar-widget reveal delay-1">
+                <h3 class="widget-title">About Me</h3>
+                <p class="widget-text">
+                    Hi, I'm Ado_Jk. A developer focusing on Python backend architecture, elegant API design, and crafting minimalist user experiences.
+                </p>
+                <button class="btn-outline" type="button">More about me</button>
+            </div>
+        </aside>
+    {% endif %}
+</main>
+
+<footer class="footer">
+    <div class="container footer-content">
+        <p>@2026 Ado_Jk. Designed with minimalism. Deployed on Alibaba Cloud.</p>
+        <div class="footer-links">
+            <a href="https://www.youtube.com/@DrizzleNote" target="_blank" rel="noopener noreferrer">YouTube</a>
+            <a href="https://github.com/duxiaokk" target="_blank" rel="noopener noreferrer">GitHub</a>
+            <a href="#">RSS</a>
+        </div>
+    </div>
+</footer>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{{ url_for('static', path='js/home.js') }}"></script>
+{% endblock %}
+

@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block title %}注册 | Ado_Jk{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{{ url_for('static', path='css/auth.css') }}">
+{% endblock %}
+
+{% block content %}
+<main class="auth-shell">
+    <section class="auth-card auth-card--split">
+        <div class="auth-card__visual auth-card__visual--register">
+            <p class="auth-kicker">Create account</p>
+            <h1>创建你的专属账号</h1>
+            <p class="auth-subtitle">注册后可直接评论、点赞，并设置一个头像让账号更有辨识度。</p>
+
+            <div class="auth-avatar auth-avatar--feature">
+                <span class="auth-avatar__label">头像选择</span>
+                <div class="auth-avatar__body">
+                    <div class="auth-avatar__preview">
+                        <img data-avatar-preview alt="头像预览" hidden>
+                        <span data-avatar-placeholder>未选择头像</span>
+                    </div>
+                    <label class="auth-avatar__upload">
+                        <input type="file" name="avatar" accept="image/*" form="register-form" data-avatar-input>
+                        <span>上传头像</span>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <div class="auth-card__form-panel">
+            <form class="auth-form" method="post" action="/register" enctype="multipart/form-data" id="register-form">
+                <label>
+                    <span>用户名</span>
+                    <input type="text" name="username" required autocomplete="username" placeholder="输入用户名">
+                </label>
+                <label>
+                    <span>密码</span>
+                    <input type="password" name="password" required autocomplete="new-password" placeholder="输入密码">
+                </label>
+                <label>
+                    <span>邮箱（可选）</span>
+                    <input type="email" name="email" autocomplete="email" placeholder="留空会自动生成">
+                </label>
+                <button type="submit" class="auth-button">注册</button>
+            </form>
+
+            <p class="auth-note">已有账号？<a href="/login">去登录</a></p>
+        </div>
+    </section>
+</main>
+{% endblock %}
