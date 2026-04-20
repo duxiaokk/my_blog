@@ -14,7 +14,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from database import get_db
 import models
-from schemas.user import Token, UserLogin
+from schemas.user import AuthResponse, UserLogin
 import security
 
 
@@ -25,28 +25,50 @@ templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "templates"))
 AVATAR_DIR = os.path.join(BASE_DIR, "image", "avatars")
 os.makedirs(AVATAR_DIR, exist_ok=True)
 
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("auth_audit")
 
 
-@router.post("/login", response_model=Token)
+def _apply_auth_cookies(response: Response, access_token: str, refresh_token: str | None, remember: bool) -> None:
+    access_cookie_kwargs = {
+        "key": "access_token",
+        "value": access_token,
+        "httponly": True,
+        "samesite": "lax",
+        "path": "/",
+    }
+    if remember:
+        access_cookie_kwargs["max_age"] = 60 * 60 * 24 * 30
+    response.set_cookie(**access_cookie_kwargs)
+
+    if remember and refresh_token:
+        response.set_cookie(
+            key="refresh_token",
+            value=refresh_token,
+            httponly=True,
+            samesite="lax",
+            path="/",
+            max_age=60 * 60 * 24 * security.REFRESH_TOKEN_EXPIRE_DAYS,
+        )
+    else:
+        response.delete_cookie("refresh_token", path="/")
+
+
+@router.post("/login", response_model=AuthResponse)
 async def login_api(data: UserLogin, response: Response, db: Session = Depends(get_db)):
     user = db.query(models.User).filter(models.User.username == data.username).first()
 
     if not user or not security.verify_password(data.password, user.hashed_password):
-        logger.warning(f"login failed: username={data.username}")
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Username or password is incorrect")
+        logger.warning("login failed: username=%s", data.username)
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="\u7528\u6237\u540d\u6216\u5bc6\u7801\u9519\u8bef",
+        )
 
-    logger.info(f"login success: {user.username}")
-    access_token = security.create_access_token(data={"sub": user.username})
-    response.set_cookie(
-        key="access_token",
-        value=access_token,
-        httponly=True,
-        samesite="lax",
-        path="/",
-    )
-    return {"access_token": access_token, "token_type": "bearer"}
+    logger.info("login success: %s", user.username)
+    access_token = security.create_access_token({"sub": user.username})
+    refresh_token = security.create_refresh_token({"sub": user.username}) if data.remember else None
+    _apply_auth_cookies(response, access_token, refresh_token, data.remember)
+    return {"message": "Login successful", "token_type": "bearer"}
 
 
 @router.get("/login", response_class=HTMLResponse)
@@ -93,7 +115,7 @@ async def _save_avatar_file(avatar: UploadFile | None) -> str | None:
 
 async def _save_uploaded_avatar(avatar: UploadFile) -> str:
     if not avatar.filename:
-        raise HTTPException(status_code=400, detail="请选择头像文件")
+        raise HTTPException(status_code=400, detail="Please choose an avatar file")
 
     ext = os.path.splitext(avatar.filename)[1].lower()
     if ext not in {".jpg", ".jpeg", ".png", ".gif", ".webp"}:
@@ -108,7 +130,7 @@ async def _save_uploaded_avatar(avatar: UploadFile) -> str:
     return rel_path.replace("\\", "/")
 
 
-@router.post("/register")
+@router.post("/register", response_model=AuthResponse)
 async def register_user(request: Request, db: Session = Depends(get_db)):
     username, email, password, avatar = await _parse_register_request(request)
 
@@ -140,32 +162,24 @@ async def register_user(request: Request, db: Session = Depends(get_db)):
     db.add(new_user)
     db.commit()
 
-    access_token = security.create_access_token(data={"sub": username})
+    access_token = security.create_access_token({"sub": username})
     wants_json = "application/json" in (request.headers.get("content-type") or "").lower() or (
         request.headers.get("x-requested-with") or ""
     ).lower() == "xmlhttprequest"
 
     if wants_json:
         response = JSONResponse(
-            {"message": "Registration successful", "access_token": access_token, "token_type": "bearer", "avatar_path": avatar_path}
+            {
+                "message": "Registration successful",
+                "token_type": "bearer",
+                "avatar_path": avatar_path,
+            }
         )
-        response.set_cookie(
-            key="access_token",
-            value=access_token,
-            httponly=True,
-            samesite="lax",
-            path="/",
-        )
+        _apply_auth_cookies(response, access_token, None, remember=False)
         return response
 
     response = RedirectResponse(url="/", status_code=status.HTTP_302_FOUND)
-    response.set_cookie(
-        key="access_token",
-        value=access_token,
-        httponly=True,
-        samesite="lax",
-        path="/",
-    )
+    _apply_auth_cookies(response, access_token, None, remember=False)
     return response
 
 
@@ -173,6 +187,30 @@ async def register_user(request: Request, db: Session = Depends(get_db)):
 async def logout():
     response = RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
     response.delete_cookie("access_token")
+    response.delete_cookie("refresh_token")
+    return response
+
+
+@router.post("/refresh-token")
+async def refresh_token(request: Request):
+    token = request.cookies.get("refresh_token")
+    if not token:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not logged in")
+    scheme, _, param = token.partition(" ")
+    actual_token = param if scheme.lower() == "bearer" else token
+    payload = security.decode_token(actual_token, expected_type="refresh")
+    username = payload.get("sub")
+    if not username:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not logged in")
+    new_access_token = security.create_access_token({"sub": str(username)})
+    response = JSONResponse({"access_token": new_access_token, "token_type": "bearer"})
+    response.set_cookie(
+        key="access_token",
+        value=new_access_token,
+        httponly=True,
+        samesite="lax",
+        path="/",
+    )
     return response
 
 
@@ -185,10 +223,10 @@ async def update_profile_avatar(
     username = security.get_current_user_from_cookie(request)
     user = db.query(models.User).filter(models.User.username == username).first()
     if not user:
-        raise HTTPException(status_code=404, detail="用户不存在")
+        raise HTTPException(status_code=404, detail="User not found")
 
     avatar_path = await _save_uploaded_avatar(avatar)
     user.avatar_path = avatar_path
     db.add(user)
     db.commit()
-    return {"message": "头像已更新", "avatar_path": avatar_path}
+    return {"message": "Avatar updated", "avatar_path": avatar_path}

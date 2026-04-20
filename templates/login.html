@@ -1,34 +1,46 @@
 {% extends "base.html" %}
 
-{% block title %}登录 | Ado_Jk{% endblock %}
+{% block title %}Login | Ado_Jk{% endblock %}
 
 {% block extra_head %}
 <link rel="stylesheet" href="{{ url_for('static', path='css/auth.css') }}">
 {% endblock %}
+
+{% block nav_auth_actions %}{% endblock %}
+
+{% block body_class %}auth-page{% endblock %}
 
 {% block content %}
 <main class="auth-shell">
     <section class="auth-card auth-card--split">
         <div class="auth-card__visual">
             <p class="auth-kicker">Welcome back</p>
-            <h1>登录到博客页面</h1>
-            <p class="auth-subtitle">登录后可以查看文章详情、评论、点赞</p>
+            <h1>Login to the blog</h1>
+            <p class="auth-subtitle">After signing in you can read posts, comment, and like.</p>
         </div>
 
         <div class="auth-card__form-panel">
             <form id="login-form" class="auth-form">
+                <input type="hidden" name="next" value="{{ request.query_params.get('next', '') }}">
                 <label>
-                    <span>用户名</span>
-                    <input type="text" name="username" required autocomplete="username" placeholder="输入用户名">
+                    <span>Username</span>
+                    <input type="text" name="username" required autocomplete="username" placeholder="Enter username">
                 </label>
                 <label>
-                    <span>密码</span>
-                    <input type="password" name="password" required autocomplete="current-password" placeholder="输入密码">
+                    <span>Password</span>
+                    <div class="input-wrapper auth-password-field">
+                        <input type="password" name="password" required autocomplete="current-password" placeholder="Enter password" data-password-input>
+                        <button type="button" class="password-toggle auth-password-toggle" data-password-toggle aria-label="Show password" aria-pressed="false">
+                            <i data-lucide="eye" class="eye-open"></i>
+                            <i data-lucide="eye-off" class="eye-closed"></i>
+                            <span class="password-toggle__text">Show</span>
+                        </button>
+                    </div>
                 </label>
-                <button type="submit" class="auth-button">登录</button>
+                <button type="submit" class="auth-button">Login</button>
             </form>
 
-            <p class="auth-note">还没有账号？<a href="/register-page">去注册</a></p>
+            <p class="auth-note">No account yet? <a href="/register-page">Create one</a></p>
             <p id="login-status" class="auth-status"></p>
         </div>
     </section>

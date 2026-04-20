@@ -1,80 +1,69 @@
 from __future__ import annotations
 
-import base64
-import hashlib
-import hmac
-import json
-import secrets
-import time
 from datetime import datetime, timedelta, timezone
-from typing import Any
+from typing import Any, Optional
 
+import jwt
 from fastapi import HTTPException, Request
+from jwt import InvalidTokenError
+from passlib.context import CryptContext
 from starlette import status
 
 from core.config import settings
 
+pwd_context = CryptContext(
+    schemes=["bcrypt_sha256", "bcrypt"],
+    deprecated="auto",
+)
 
-SECRET_KEY = settings.secret_key.encode("utf-8")
+ALGORITHM = settings.jwt_algorithm
 ACCESS_TOKEN_EXPIRE_MINUTES = settings.access_token_expire_minutes
-_PBKDF2_ITERS = settings.pbkdf2_iters
-
-
-def _b64url_encode(raw: bytes) -> str:
-    return base64.urlsafe_b64encode(raw).rstrip(b"=").decode("ascii")
-
-
-def _b64url_decode(data: str) -> bytes:
-    pad = "=" * (-len(data) % 4)
-    return base64.urlsafe_b64decode((data + pad).encode("ascii"))
+REFRESH_TOKEN_EXPIRE_DAYS = settings.refresh_token_expire_days
+SECRET_KEY = settings.secret_key
 
 
 def get_password_hash(password: str) -> str:
-    salt = secrets.token_bytes(16)
-    dk = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt, _PBKDF2_ITERS)
-    return f"pbkdf2_sha256${_PBKDF2_ITERS}${_b64url_encode(salt)}${_b64url_encode(dk)}"
+    return pwd_context.hash(password)
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     try:
-        scheme, iters_s, salt_b64, dk_b64 = hashed_password.split("$", 3)
-        if scheme != "pbkdf2_sha256":
-            return False
-        iters = int(iters_s)
-        salt = _b64url_decode(salt_b64)
-        expected = _b64url_decode(dk_b64)
-        actual = hashlib.pbkdf2_hmac("sha256", plain_password.encode("utf-8"), salt, iters)
-        return hmac.compare_digest(actual, expected)
+        return pwd_context.verify(plain_password, hashed_password)
     except Exception:
         return False
 
 
-def create_access_token(data: dict[str, Any]) -> str:
+def _create_token(data: dict[str, Any], expires_delta: timedelta, token_type: str) -> str:
     payload = dict(data)
-    expire = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    payload["exp"] = int(expire.timestamp())
-
-    payload_bytes = json.dumps(payload, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
-    payload_b64 = _b64url_encode(payload_bytes)
-    sig = hmac.new(SECRET_KEY, payload_b64.encode("ascii"), hashlib.sha256).digest()
-    sig_b64 = _b64url_encode(sig)
-    return f"{payload_b64}.{sig_b64}"
+    expire = datetime.now(timezone.utc) + expires_delta
+    payload.update({"exp": expire, "iat": datetime.now(timezone.utc), "type": token_type})
+    return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
 
 
-def _decode_and_verify_token(token: str) -> dict[str, Any]:
+def create_access_token(data: dict[str, Any]) -> str:
+    return _create_token(data, timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES), "access")
+
+
+def create_refresh_token(data: dict[str, Any]) -> str:
+    return _create_token(data, timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS), "refresh")
+
+
+def create_token_pair(data: dict[str, Any]) -> dict[str, str]:
+    return {
+        "access_token": create_access_token(data),
+        "refresh_token": create_refresh_token(data),
+    }
+
+
+def decode_token(token: str, expected_type: Optional[str] = None) -> dict[str, Any]:
     try:
-        payload_b64, sig_b64 = token.split(".", 1)
-    except ValueError as e:
-        raise ValueError("bad token format") from e
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+    except InvalidTokenError as exc:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="未登录") from exc
 
-    expected_sig = hmac.new(SECRET_KEY, payload_b64.encode("ascii"), hashlib.sha256).digest()
-    if not hmac.compare_digest(_b64url_decode(sig_b64), expected_sig):
-        raise ValueError("bad signature")
-
-    payload = json.loads(_b64url_decode(payload_b64).decode("utf-8"))
-    exp = int(payload.get("exp", 0))
-    if exp and int(time.time()) > exp:
-        raise ValueError("token expired")
+    token_type = payload.get("type")
+    if expected_type and token_type != expected_type:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="未登录")
     return payload
 
 
@@ -85,14 +74,9 @@ def get_current_user_from_cookie(request: Request) -> str:
 
     scheme, _, param = token.partition(" ")
     actual_token = param if scheme.lower() == "bearer" else token
-
-    try:
-        payload = _decode_and_verify_token(actual_token)
-    except Exception:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="未登录")
+    payload = decode_token(actual_token, expected_type="access")
 
     username = payload.get("sub")
     if not username:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="未登录")
     return str(username)
-

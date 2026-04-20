@@ -1,0 +1,21 @@
+fastapi
+uvicorn[standard]
+sqlalchemy
+pydantic
+pydantic-settings
+python-dotenv
+jinja2
+python-multipart
+email-validator
+pymysql
+passlib[bcrypt]
+bcrypt==4.0.1
+PyJWT
+redis
+alembic
+pytest
+
+# Optional later for async migration
+# aiosqlite
+# aiomysql
+cryptography

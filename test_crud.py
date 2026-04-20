@@ -59,3 +59,6 @@ def test_delete_post(db):
     ok = crud.delete_post(db, post_id)
     assert ok
     assert crud.get_post(db, post_id) is None
+    raw = crud.get_post(db, post_id, include_deleted=True)
+    assert raw is not None
+    assert raw.deleted_at is not None

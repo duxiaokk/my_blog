@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import Optional
-
 from pydantic import BaseModel, EmailStr, Field, field_validator
 
 
@@ -17,7 +15,7 @@ class UserCreate(UserBase):
     @classmethod
     def validate_password(cls, v):
         if not any(char.isdigit() for char in v):
-            raise ValueError("瀵嗙爜蹇呴』鍖呭惈鏁板瓧")
+            raise ValueError("Password must contain at least one digit")
         return v
 
 
@@ -31,9 +29,10 @@ class UserOut(UserBase):
 class UserLogin(BaseModel):
     username: str
     password: str
+    remember: bool = False
 
 
-class Token(BaseModel):
-    access_token: str
+class AuthResponse(BaseModel):
+    message: str
     token_type: str
-
+    avatar_path: str | None = None

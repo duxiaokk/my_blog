@@ -42,4 +42,4 @@ def toggle_post_like(db: Session, post_id: int, current_username: Optional[str])
 def remove_post(db: Session, post_id: int, current_username: str) -> bool:
     if not is_admin(current_username):
         raise PermissionError("admin only")
-    return crud_delete_post(db, post_id)
+    return crud_delete_post(db, post_id, deleted_by=current_username)

@@ -1,11 +1,11 @@
 from .post import ArticleCreate, PostBase, PostCreate
-from .user import Token, UserBase, UserCreate, UserLogin, UserOut
+from .user import AuthResponse, UserBase, UserCreate, UserLogin, UserOut
 
 __all__ = [
     "ArticleCreate",
+    "AuthResponse",
     "PostBase",
     "PostCreate",
-    "Token",
     "UserBase",
     "UserCreate",
     "UserLogin",

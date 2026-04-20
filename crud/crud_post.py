@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Optional, Sequence, Tuple
 
 from sqlalchemy import or_
@@ -17,8 +17,11 @@ def create_post(db: Session, title: str, content: str, image_path: str | None = 
     return new_post
 
 
-def get_post(db: Session, post_id: int) -> Optional[models.Post]:
-    return db.query(models.Post).filter(models.Post.id == post_id).first()
+def get_post(db: Session, post_id: int, include_deleted: bool = False) -> Optional[models.Post]:
+    query = db.query(models.Post).filter(models.Post.id == post_id)
+    if not include_deleted:
+        query = query.filter(models.Post.deleted_at.is_(None))
+    return query.first()
 
 
 def get_posts(
@@ -30,8 +33,12 @@ def get_posts(
     tech_tags: Sequence[str] = (),
     skip: int = 0,
     limit: int = 10,
+    include_deleted: bool = False,
 ) -> Tuple[List[models.Post], int]:
     query = db.query(models.Post)
+
+    if not include_deleted:
+        query = query.filter(models.Post.deleted_at.is_(None))
 
     if search:
         query = query.filter(models.Post.title.contains(search))
@@ -63,7 +70,7 @@ def get_posts(
 
 
 def update_post_like(db: Session, post_id: int, user_id: Optional[int] = None) -> dict:
-    post = db.query(models.Post).filter(models.Post.id == post_id).first()
+    post = db.query(models.Post).filter(models.Post.id == post_id, models.Post.deleted_at.is_(None)).first()
     if not post:
         return {"error": "文章不存在"}
 
@@ -91,18 +98,13 @@ def update_post_like(db: Session, post_id: int, user_id: Optional[int] = None) -
     return {"count": post.like_count, "liked": liked}
 
 
-def delete_post(db: Session, post_id: int) -> bool:
-    post_query = db.query(models.Post).filter(models.Post.id == post_id)
-    post = post_query.first()
+def delete_post(db: Session, post_id: int, deleted_by: str | None = None) -> bool:
+    post = db.query(models.Post).filter(models.Post.id == post_id).first()
     if not post:
         return False
 
-    comment_ids = [row[0] for row in db.query(models.Comment.id).filter(models.Comment.article_id == post_id).all()]
-    if comment_ids:
-        db.query(models.CommentLike).filter(models.CommentLike.comment_id.in_(comment_ids)).delete(synchronize_session=False)
-        db.query(models.Comment).filter(models.Comment.id.in_(comment_ids)).delete(synchronize_session=False)
-
-    post_query.delete(synchronize_session=False)
+    if post.deleted_at is None:
+        post.deleted_at = datetime.now(timezone.utc)
+        post.deleted_by = deleted_by
     db.commit()
     return True
-

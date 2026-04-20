@@ -1,6 +1,7 @@
 ﻿from __future__ import annotations
 
 import asyncio
+import logging
 import json
 import os
 import sys
@@ -27,6 +28,7 @@ from web_deps import (
 
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 
 class CommentCreateRequest(BaseModel):
@@ -71,8 +73,8 @@ class _CommentBus:
         for q in subs:
             try:
                 q.put_nowait(event)
-            except Exception:
-                pass
+            except Exception as exc:
+                logger.debug("comment bus publish failed for post_id=%s: %s", post_id, exc)
 
 
 comment_bus = _CommentBus()
@@ -89,7 +91,7 @@ def list_comments(
     page = max(1, int(page))
     page_size = max(1, min(50, int(page_size)))
 
-    post = db.query(models.Post).filter(models.Post.id == post_id).first()
+    post = db.query(models.Post).filter(models.Post.id == post_id, models.Post.deleted_at.is_(None)).first()
     if not post:
         raise HTTPException(status_code=404, detail="文章不存在")
 
@@ -153,7 +155,7 @@ async def create_comment(
         raise HTTPException(status_code=429, detail="操作过于频繁，请稍后再试")
     verify_csrf(request)
 
-    post = db.query(models.Post).filter(models.Post.id == post_id).first()
+    post = db.query(models.Post).filter(models.Post.id == post_id, models.Post.deleted_at.is_(None)).first()
     if not post:
         raise HTTPException(status_code=404, detail="文章不存在")
 
