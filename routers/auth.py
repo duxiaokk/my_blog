@@ -9,10 +9,14 @@ from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
-import models
 import security
 from database import get_db
 from schemas.user import AuthResponse, UserLogin
+from services.auth_service import (
+    authenticate_user,
+    change_user_avatar,
+    register_user as register_user_service,
+)
 
 router = APIRouter(tags=["Authentication"])
 
@@ -54,9 +58,8 @@ def _apply_auth_cookies(
 
 @router.post("/login", response_model=AuthResponse)
 async def login_api(data: UserLogin, response: Response, db: Session = Depends(get_db)):
-    user = db.query(models.User).filter(models.User.username == data.username).first()
-
-    if not user or not security.verify_password(data.password, user.hashed_password):
+    user = authenticate_user(db, data.username, data.password)
+    if not user:
         logger.warning("login failed: username=%s", data.username)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -122,37 +125,19 @@ async def _save_avatar_upload(avatar: UploadFile | None, *, required: bool) -> s
 async def register_user(request: Request, db: Session = Depends(get_db)):
     username, email, password, avatar = await _parse_register_request(request)
 
-    username = (username or "").strip()
-    password = (password or "").strip()
-    email = (email or "").strip() or f"{username}@local.invalid"
-
-    if not username or not password:
-        raise HTTPException(status_code=400, detail="Missing registration data")
-    if len(username) < 3:
-        raise HTTPException(status_code=400, detail="Username must be at least 3 characters")
-    if len(password) < 6:
-        raise HTTPException(status_code=400, detail="Password must be at least 6 characters")
-
-    existing = (
-        db.query(models.User)
-        .filter((models.User.username == username) | (models.User.email == email))
-        .first()
-    )
-    if existing:
-        raise HTTPException(status_code=400, detail="Username or email already exists")
-
     avatar_path = await _save_avatar_upload(avatar, required=False)
-    hashed_pwd = security.get_password_hash(password)
-    new_user = models.User(
-        username=username,
-        email=email,
-        hashed_password=hashed_pwd,
-        avatar_path=avatar_path,
-    )
-    db.add(new_user)
-    db.commit()
+    try:
+        new_user = register_user_service(
+            db,
+            username=username or "",
+            email=email or "",
+            password=password or "",
+            avatar_path=avatar_path,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
-    access_token = security.create_access_token({"sub": username})
+    access_token = security.create_access_token({"sub": new_user.username})
     wants_json = (
         "application/json" in (request.headers.get("content-type") or "").lower()
         or (request.headers.get("x-requested-with") or "").lower() == "xmlhttprequest"
@@ -212,12 +197,9 @@ async def update_profile_avatar(
     db: Session = Depends(get_db),
 ):
     username = security.get_current_user_from_cookie(request)
-    user = db.query(models.User).filter(models.User.username == username).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-
     avatar_path = await _save_avatar_upload(avatar, required=True)
-    user.avatar_path = avatar_path
-    db.add(user)
-    db.commit()
+    try:
+        change_user_avatar(db, username=username, avatar_path=avatar_path)
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail="User not found") from exc
     return {"message": "Avatar updated", "avatar_path": avatar_path}

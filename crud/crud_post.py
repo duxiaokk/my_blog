@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import List, Optional, Sequence, Tuple
 
-from sqlalchemy import or_
+from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
 
 import models
@@ -79,6 +79,49 @@ def get_posts(
     return posts, total_count
 
 
+def get_all_posts(db: Session, include_deleted: bool = False) -> list[models.Post]:
+    query = db.query(models.Post)
+    if not include_deleted:
+        query = query.filter(models.Post.deleted_at.is_(None))
+    return query.order_by(models.Post.id.desc()).all()
+
+
+def get_random_active_post(db: Session) -> Optional[models.Post]:
+    return (
+        db.query(models.Post)
+        .filter(models.Post.deleted_at.is_(None))
+        .order_by(func.random())
+        .first()
+    )
+
+
+def get_tech_posts(db: Session, tech_tags: Sequence[str]) -> list[models.Post]:
+    if not tech_tags:
+        return []
+    return (
+        db.query(models.Post)
+        .filter(models.Post.deleted_at.is_(None), models.Post.tech_tag.in_(list(tech_tags)))
+        .order_by(models.Post.id.desc())
+        .all()
+    )
+
+
+def get_tech_tag_counts(db: Session, tech_tags: Sequence[str]) -> dict[str, int]:
+    if not tech_tags:
+        return {}
+    rows = (
+        db.query(models.Post.tech_tag, func.count(models.Post.id))
+        .filter(models.Post.deleted_at.is_(None), models.Post.tech_tag.in_(list(tech_tags)))
+        .group_by(models.Post.tech_tag)
+        .all()
+    )
+    counts = {tag: 0 for tag in tech_tags}
+    for tag, count in rows:
+        if tag is not None:
+            counts[str(tag)] = int(count)
+    return counts
+
+
 def update_post_like(db: Session, post_id: int, user_id: Optional[int] = None) -> dict:
     post = (
         db.query(models.Post)
@@ -110,6 +153,17 @@ def update_post_like(db: Session, post_id: int, user_id: Optional[int] = None) -
     db.commit()
     db.refresh(post)
     return {"count": post.like_count, "liked": liked}
+
+
+def get_post_like_ids(db: Session, user_id: int, post_ids: Sequence[int]) -> set[int]:
+    if not post_ids:
+        return set()
+    liked_rows = (
+        db.query(models.PostLike.post_id)
+        .filter(models.PostLike.user_id == user_id, models.PostLike.post_id.in_(list(post_ids)))
+        .all()
+    )
+    return {int(row[0]) for row in liked_rows}
 
 
 def delete_post(db: Session, post_id: int, deleted_by: str | None = None) -> bool:
