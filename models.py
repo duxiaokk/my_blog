@@ -8,8 +8,11 @@
 """
 
 from datetime import datetime, timezone
-from database import Base
+
 from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Index, Integer, String, Text
+
+from database import Base
+
 
 class Post(Base):
     __tablename__ = "posts"
@@ -35,9 +38,7 @@ class PostLike(Base):
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), index=True)
 
-    __table_args__ = (
-        Index("uq_post_likes_user_post", "user_id", "post_id", unique=True),
-    )
+    __table_args__ = (Index("uq_post_likes_user_post", "user_id", "post_id", unique=True),)
 
 
 class User(Base):
@@ -64,7 +65,12 @@ class Comment(Base):
     status = Column(String(32), default="active", nullable=False)
 
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), index=True)
-    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), index=True)
+    updated_at = Column(
+        DateTime,
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+        index=True,
+    )
 
     __table_args__ = (
         Index("ix_comments_article_created", "article_id", "created_at"),
@@ -81,9 +87,7 @@ class CommentLike(Base):
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), index=True)
 
-    __table_args__ = (
-        Index("uq_comment_likes_user_comment", "user_id", "comment_id", unique=True),
-    )
+    __table_args__ = (Index("uq_comment_likes_user_comment", "user_id", "comment_id", unique=True),)
 
 
 class EventLog(Base):

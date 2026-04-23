@@ -1,11 +1,9 @@
 from __future__ import annotations
 
 from sqlalchemy import create_engine
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import declarative_base, sessionmaker
 
 from core.config import settings
-
 
 SQLALCHEMY_DATABASE_URL = settings.resolved_database_url
 
@@ -24,4 +22,3 @@ def get_db():
         yield db
     finally:
         db.close()
-

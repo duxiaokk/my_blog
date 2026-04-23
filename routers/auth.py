@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import logging
 import os
-import sys
 import uuid
 
 from fastapi import APIRouter, Depends, File, HTTPException, Request, Response, UploadFile, status
@@ -10,13 +9,10 @@ from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-from database import get_db
 import models
-from schemas.user import AuthResponse, UserLogin
 import security
-
+from database import get_db
+from schemas.user import AuthResponse, UserLogin
 
 router = APIRouter(tags=["Authentication"])
 
@@ -24,11 +20,14 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "templates"))
 AVATAR_DIR = os.path.join(BASE_DIR, "image", "avatars")
 os.makedirs(AVATAR_DIR, exist_ok=True)
+ALLOWED_AVATAR_EXTENSIONS = {".jpg", ".jpeg", ".png", ".gif", ".webp"}
 
 logger = logging.getLogger("auth_audit")
 
 
-def _apply_auth_cookies(response: Response, access_token: str, refresh_token: str | None, remember: bool) -> None:
+def _apply_auth_cookies(
+    response: Response, access_token: str, refresh_token: str | None, remember: bool
+) -> None:
     access_cookie_kwargs = {
         "key": "access_token",
         "value": access_token,
@@ -81,7 +80,9 @@ async def register_page(request: Request):
     return templates.TemplateResponse(request, "register.html")
 
 
-async def _parse_register_request(request: Request) -> tuple[str | None, str | None, str | None, UploadFile | None]:
+async def _parse_register_request(
+    request: Request,
+) -> tuple[str | None, str | None, str | None, UploadFile | None]:
     content_type = (request.headers.get("content-type") or "").lower()
     if "application/json" in content_type:
         data = await request.json()
@@ -94,13 +95,17 @@ async def _parse_register_request(request: Request) -> tuple[str | None, str | N
     return form.get("username"), form.get("email"), form.get("password"), avatar
 
 
-async def _save_avatar_file(avatar: UploadFile | None) -> str | None:
+async def _save_avatar_upload(avatar: UploadFile | None, *, required: bool) -> str | None:
     if not avatar or not avatar.filename:
+        if required:
+            raise HTTPException(status_code=400, detail="Please choose an avatar file")
         return None
 
     ext = os.path.splitext(avatar.filename)[1].lower()
-    if ext not in {".jpg", ".jpeg", ".png", ".gif", ".webp"}:
-        raise HTTPException(status_code=400, detail="Only jpg/jpeg/png/gif/webp avatars are supported")
+    if ext not in ALLOWED_AVATAR_EXTENSIONS:
+        raise HTTPException(
+            status_code=400, detail="Only jpg/jpeg/png/gif/webp avatars are supported"
+        )
 
     saved_name = f"{uuid.uuid4().hex}{ext}"
     rel_path = f"avatars/{saved_name}"
@@ -110,23 +115,6 @@ async def _save_avatar_file(avatar: UploadFile | None) -> str | None:
     with open(abs_path, "wb") as buffer:
         buffer.write(file_data)
 
-    return rel_path.replace("\\", "/")
-
-
-async def _save_uploaded_avatar(avatar: UploadFile) -> str:
-    if not avatar.filename:
-        raise HTTPException(status_code=400, detail="Please choose an avatar file")
-
-    ext = os.path.splitext(avatar.filename)[1].lower()
-    if ext not in {".jpg", ".jpeg", ".png", ".gif", ".webp"}:
-        raise HTTPException(status_code=400, detail="Only jpg/jpeg/png/gif/webp avatars are supported")
-
-    saved_name = f"{uuid.uuid4().hex}{ext}"
-    rel_path = f"avatars/{saved_name}"
-    abs_path = os.path.join(AVATAR_DIR, saved_name)
-    file_data = await avatar.read()
-    with open(abs_path, "wb") as buffer:
-        buffer.write(file_data)
     return rel_path.replace("\\", "/")
 
 
@@ -145,13 +133,15 @@ async def register_user(request: Request, db: Session = Depends(get_db)):
     if len(password) < 6:
         raise HTTPException(status_code=400, detail="Password must be at least 6 characters")
 
-    existing = db.query(models.User).filter(
-        (models.User.username == username) | (models.User.email == email)
-    ).first()
+    existing = (
+        db.query(models.User)
+        .filter((models.User.username == username) | (models.User.email == email))
+        .first()
+    )
     if existing:
         raise HTTPException(status_code=400, detail="Username or email already exists")
 
-    avatar_path = await _save_avatar_file(avatar)
+    avatar_path = await _save_avatar_upload(avatar, required=False)
     hashed_pwd = security.get_password_hash(password)
     new_user = models.User(
         username=username,
@@ -163,9 +153,10 @@ async def register_user(request: Request, db: Session = Depends(get_db)):
     db.commit()
 
     access_token = security.create_access_token({"sub": username})
-    wants_json = "application/json" in (request.headers.get("content-type") or "").lower() or (
-        request.headers.get("x-requested-with") or ""
-    ).lower() == "xmlhttprequest"
+    wants_json = (
+        "application/json" in (request.headers.get("content-type") or "").lower()
+        or (request.headers.get("x-requested-with") or "").lower() == "xmlhttprequest"
+    )
 
     if wants_json:
         response = JSONResponse(
@@ -225,7 +216,7 @@ async def update_profile_avatar(
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    avatar_path = await _save_uploaded_avatar(avatar)
+    avatar_path = await _save_avatar_upload(avatar, required=True)
     user.avatar_path = avatar_path
     db.add(user)
     db.commit()

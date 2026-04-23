@@ -1,10 +1,8 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 import asyncio
-import logging
 import json
-import os
-import sys
+import logging
 from collections import defaultdict
 from typing import Dict, Optional, Set
 
@@ -12,8 +10,6 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
-
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import models
 import security
@@ -25,7 +21,6 @@ from web_deps import (
     is_admin,
     verify_csrf,
 )
-
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -91,7 +86,11 @@ def list_comments(
     page = max(1, int(page))
     page_size = max(1, min(50, int(page_size)))
 
-    post = db.query(models.Post).filter(models.Post.id == post_id, models.Post.deleted_at.is_(None)).first()
+    post = (
+        db.query(models.Post)
+        .filter(models.Post.id == post_id, models.Post.deleted_at.is_(None))
+        .first()
+    )
     if not post:
         raise HTTPException(status_code=404, detail="文章不存在")
 
@@ -119,7 +118,9 @@ def list_comments(
             )
             liked_ids = {int(x[0]) for x in liked_rows}
 
-    items = [_comment_to_dict(c, username, liked_by_me=(int(c.id) in liked_ids)) for c, username in rows]
+    items = [
+        _comment_to_dict(c, username, liked_by_me=(int(c.id) in liked_ids)) for c, username in rows
+    ]
     return {"items": items, "page": page, "page_size": page_size, "total": total}
 
 
@@ -143,6 +144,7 @@ async def comment_stream(post_id: int, request: Request):
 
     return StreamingResponse(gen(), media_type="text/event-stream")
 
+
 @router.post("/posts/{post_id}/comments")
 async def create_comment(
     post_id: int,
@@ -155,7 +157,11 @@ async def create_comment(
         raise HTTPException(status_code=429, detail="操作过于频繁，请稍后再试")
     verify_csrf(request)
 
-    post = db.query(models.Post).filter(models.Post.id == post_id, models.Post.deleted_at.is_(None)).first()
+    post = (
+        db.query(models.Post)
+        .filter(models.Post.id == post_id, models.Post.deleted_at.is_(None))
+        .first()
+    )
     if not post:
         raise HTTPException(status_code=404, detail="文章不存在")
 
@@ -164,7 +170,7 @@ async def create_comment(
         raise HTTPException(status_code=401, detail="未登录")
 
     content = body.content.strip()
-    
+
     if not content:
         raise HTTPException(status_code=400, detail="评论内容不能为空")
     if len(content) > 2000:
@@ -289,7 +295,10 @@ async def like_comment(
         comment.like_count = int(comment.like_count or 0) + 1
         db.commit()
         db.refresh(comment)
-        comment_bus.publish(comment.article_id, {"type": "liked", "comment_id": comment_id, "like_count": int(comment.like_count or 0)})
+        comment_bus.publish(
+            comment.article_id,
+            {"type": "liked", "comment_id": comment_id, "like_count": int(comment.like_count or 0)},
+        )
         return {"like_count": int(comment.like_count or 0), "liked": False}
 
     current = db.query(models.User).filter(models.User.username == current_username).first()
@@ -297,12 +306,17 @@ async def like_comment(
         comment.like_count = int(comment.like_count or 0) + 1
         db.commit()
         db.refresh(comment)
-        comment_bus.publish(comment.article_id, {"type": "liked", "comment_id": comment_id, "like_count": int(comment.like_count or 0)})
+        comment_bus.publish(
+            comment.article_id,
+            {"type": "liked", "comment_id": comment_id, "like_count": int(comment.like_count or 0)},
+        )
         return {"like_count": int(comment.like_count or 0), "liked": False}
 
     existing = (
         db.query(models.CommentLike)
-        .filter(models.CommentLike.user_id == current.id, models.CommentLike.comment_id == comment_id)
+        .filter(
+            models.CommentLike.user_id == current.id, models.CommentLike.comment_id == comment_id
+        )
         .first()
     )
     if existing:
@@ -310,12 +324,18 @@ async def like_comment(
         comment.like_count = max(0, int(comment.like_count or 0) - 1)
         db.commit()
         db.refresh(comment)
-        comment_bus.publish(comment.article_id, {"type": "liked", "comment_id": comment_id, "like_count": int(comment.like_count or 0)})
+        comment_bus.publish(
+            comment.article_id,
+            {"type": "liked", "comment_id": comment_id, "like_count": int(comment.like_count or 0)},
+        )
         return {"like_count": int(comment.like_count or 0), "liked": False}
 
     db.add(models.CommentLike(comment_id=comment_id, user_id=current.id))
     comment.like_count = int(comment.like_count or 0) + 1
     db.commit()
     db.refresh(comment)
-    comment_bus.publish(comment.article_id, {"type": "liked", "comment_id": comment_id, "like_count": int(comment.like_count or 0)})
+    comment_bus.publish(
+        comment.article_id,
+        {"type": "liked", "comment_id": comment_id, "like_count": int(comment.like_count or 0)},
+    )
     return {"like_count": int(comment.like_count or 0), "liked": True}

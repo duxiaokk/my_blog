@@ -18,4 +18,3 @@ class PostCreate(PostBase):
 
 class ArticleCreate(PostBase):
     pass
-

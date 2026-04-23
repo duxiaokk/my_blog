@@ -4,8 +4,11 @@ import os
 from pathlib import Path
 from typing import List, Optional
 
+from pydantic import AliasChoices, Field
+
 try:
     from pydantic_settings import BaseSettings, SettingsConfigDict
+
     _HAS_PYDANTIC_SETTINGS = True
 except Exception:  # pragma: no cover - fallback for older/local envs
     from pydantic import BaseModel
@@ -40,7 +43,12 @@ def _parse_tags(raw: str | None) -> List[str]:
 
 class Settings(BaseSettings):
     if _HAS_PYDANTIC_SETTINGS:
-        model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
+        model_config = SettingsConfigDict(
+            env_file=".env",
+            env_file_encoding="utf-8",
+            extra="ignore",
+            populate_by_name=True,
+        )
 
     database_url: Optional[str] = None
     use_mysql: bool = False
@@ -50,11 +58,17 @@ class Settings(BaseSettings):
     db_port: str = "3306"
     db_name: Optional[str] = None
     secret_key: str
-    jwt_algorithm: str = "HS256"
+    jwt_algorithm: str = Field(
+        default="HS256",
+        validation_alias=AliasChoices("ALGORITHM", "JWT_ALGORITHM", "jwt_algorithm"),
+    )
     access_token_expire_minutes: int = 30
     refresh_token_expire_days: int = 30
     admin_username: str = "Ado_Jk"
-    tech_tags_raw: str = "Python,FastAPI,SQLAlchemy,SQLite"
+    tech_tags_raw: str = Field(
+        default="Python,FastAPI,SQLAlchemy,SQLite",
+        validation_alias=AliasChoices("TECH_TAGS", "TECH_TAGS_RAW", "tech_tags_raw"),
+    )
     zhipuai_api_key: Optional[str] = None
     redis_url: Optional[str] = None
 
@@ -85,11 +99,11 @@ def _load_fallback_settings() -> Settings:
             "db_port": os.getenv("DB_PORT", "3306"),
             "db_name": os.getenv("DB_NAME") or None,
             "secret_key": os.getenv("SECRET_KEY", ""),
-            "jwt_algorithm": os.getenv("ALGORITHM", "HS256"),
+            "ALGORITHM": os.getenv("ALGORITHM") or os.getenv("JWT_ALGORITHM", "HS256"),
             "access_token_expire_minutes": _parse_int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES"), 30),
             "refresh_token_expire_days": _parse_int(os.getenv("REFRESH_TOKEN_EXPIRE_DAYS"), 30),
             "admin_username": os.getenv("ADMIN_USERNAME", "Ado_Jk"),
-            "tech_tags_raw": os.getenv("TECH_TAGS", "Python,FastAPI,SQLAlchemy,SQLite"),
+            "TECH_TAGS": os.getenv("TECH_TAGS", "Python,FastAPI,SQLAlchemy,SQLite"),
             "zhipuai_api_key": os.getenv("ZHIPUAI_API_KEY"),
             "redis_url": os.getenv("REDIS_URL") or None,
         }

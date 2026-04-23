@@ -7,12 +7,15 @@ from database import get_db
 from services.post_service import get_post_detail_payload, remove_post, toggle_post_like
 from web_deps import get_optional_user, verify_csrf
 
-
 router = APIRouter(prefix="/api/v1/posts", tags=["Posts API"])
 
 
 @router.get("/{post_id}")
-def get_post_detail(post_id: int, db: Session = Depends(get_db), current_username: str | None = Depends(get_optional_user)):
+def get_post_detail(
+    post_id: int,
+    db: Session = Depends(get_db),
+    current_username: str | None = Depends(get_optional_user),
+):
     try:
         payload = get_post_detail_payload(db, post_id, current_username)
     except ValueError as exc:
@@ -62,4 +65,3 @@ def delete_post(
     if not ok:
         raise HTTPException(status_code=404, detail="post not found")
     return {"message": "deleted"}
-

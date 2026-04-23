@@ -4,10 +4,10 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
+import models
 from crud.crud_post import delete_post as crud_delete_post
 from crud.crud_post import get_post as crud_get_post
 from crud.crud_post import update_post_like as crud_update_post_like
-import models
 from web_deps import is_admin
 
 
@@ -16,7 +16,9 @@ def get_post_detail_payload(db: Session, post_id: int, username: Optional[str] =
     if not post:
         raise ValueError("post not found")
 
-    current = db.query(models.User).filter(models.User.username == username).first() if username else None
+    current = (
+        db.query(models.User).filter(models.User.username == username).first() if username else None
+    )
     post_liked = False
     if current:
         liked = (
@@ -34,7 +36,11 @@ def get_post_detail_payload(db: Session, post_id: int, username: Optional[str] =
 
 
 def toggle_post_like(db: Session, post_id: int, current_username: Optional[str]) -> dict:
-    current = db.query(models.User).filter(models.User.username == current_username).first() if current_username else None
+    current = (
+        db.query(models.User).filter(models.User.username == current_username).first()
+        if current_username
+        else None
+    )
     user_id = current.id if current else None
     return crud_update_post_like(db, post_id, user_id)
 

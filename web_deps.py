@@ -11,7 +11,6 @@ from fastapi import HTTPException, Request
 import security
 from core.config import settings
 
-
 ADMIN_USERNAME = settings.admin_username
 
 
@@ -72,4 +71,3 @@ def verify_csrf(request: Request) -> None:
     header = request.headers.get("x-csrf-token")
     if not cookie or not header or cookie != header:
         raise HTTPException(status_code=403, detail="CSRF 校验失败")
-

@@ -2,20 +2,19 @@ from __future__ import annotations
 
 from logging.config import fileConfig
 
-from sqlalchemy import engine_from_config, pool
 from alembic import context
+from sqlalchemy import engine_from_config, pool
 
-from database import Base
+import models  # noqa: F401
 from core.config import settings
+from database import Base
 
-from models import Post, User, Comment
 
 config = context.config
 
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-# 关键：让 Alembic 使用项目真实数据库
 config.set_main_option("sqlalchemy.url", settings.resolved_database_url)
 
 target_metadata = Base.metadata

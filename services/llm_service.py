@@ -8,10 +8,7 @@ from core.config import settings
 
 logger = logging.getLogger(__name__)
 
-SYSTEM_PROMPT = (
-    "You are the AI persona for Ado_Jk. "
-    "Keep replies clear, technical, and concise."
-)
+SYSTEM_PROMPT = "You are the AI persona for Ado_Jk. Keep replies clear, technical, and concise."
 
 
 @lru_cache(maxsize=1)

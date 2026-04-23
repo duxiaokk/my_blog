@@ -1,52 +1,72 @@
 from __future__ import annotations
 
-import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
 
-from database import Base, get_db
-from main import app
 import models
 import security
 
 
-@pytest.fixture()
-def client():
-    engine = create_engine("sqlite:///:memory:", connect_args={"check_same_thread": False})
-    testing_session_local = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-    Base.metadata.create_all(bind=engine)
+def test_register_json_creates_user_and_sets_cookie(client: TestClient, db_session):
+    response = client.post(
+        "/register",
+        json={
+            "username": "new-user",
+            "email": "new-user@example.com",
+            "password": "strong-password",
+        },
+    )
 
-    def override_get_db():
-        db = testing_session_local()
-        try:
-            yield db
-        finally:
-            db.close()
+    assert response.status_code == 200
+    assert response.json() == {
+        "message": "Registration successful",
+        "token_type": "bearer",
+        "avatar_path": None,
+    }
+    assert "access_token" in response.cookies
 
-    app.dependency_overrides[get_db] = override_get_db
+    created = db_session.query(models.User).filter(models.User.username == "new-user").first()
+    assert created is not None
+    assert created.email == "new-user@example.com"
 
-    with testing_session_local() as db:
-        db.add(
-            models.User(
-                username="tester",
-                email="tester@example.com",
-                hashed_password=security.get_password_hash("correct-password"),
-            )
+
+def test_login_success_sets_access_cookie(client: TestClient, db_session):
+    db_session.add(
+        models.User(
+            username="tester",
+            email="tester@example.com",
+            hashed_password=security.get_password_hash("correct-password"),
         )
-        db.commit()
+    )
+    db_session.commit()
 
-    with TestClient(app) as test_client:
-        yield test_client
+    response = client.post(
+        "/login",
+        json={"username": "tester", "password": "correct-password", "remember": False},
+    )
 
-    app.dependency_overrides.pop(get_db, None)
+    assert response.status_code == 200
+    assert response.json() == {
+        "message": "Login successful",
+        "token_type": "bearer",
+        "avatar_path": None,
+    }
+    assert "access_token" in response.cookies
 
 
-def test_login_with_wrong_password_keeps_specific_error_message(client: TestClient):
+def test_login_with_wrong_password_keeps_specific_error_message(client: TestClient, db_session):
+    db_session.add(
+        models.User(
+            username="tester",
+            email="tester@example.com",
+            hashed_password=security.get_password_hash("correct-password"),
+        )
+    )
+    db_session.commit()
+
     response = client.post(
         "/login",
         json={"username": "tester", "password": "wrong-password", "remember": False},
     )
 
     assert response.status_code == 401
-    assert response.json() == {"detail": "\u7528\u6237\u540d\u6216\u5bc6\u7801\u9519\u8bef"}
+    assert response.json() == {"detail": "用户名或密码错误"}

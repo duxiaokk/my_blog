@@ -5,6 +5,12 @@ __pycache__/
 *.py[cod]
 *$py.class
 *.so
+.ruff_cache/
+.pytest_cache/
+.uv-cache/
+.uv-python/
+.venv_broken_*/
+.venv_uv/
 
 # =========================
 # 2. 虚拟环境与依赖 (必加)
@@ -28,6 +34,10 @@ blog.db
 .idea/
 *.swp
 *.swo
+.tmp/
+.tmp_dbinspect/
+.uv-cache-local/
+pytest-cache-files-*/
 
 # =========================
 # 5. Codex / AI 辅助工具产生的垃圾文件 (针对你的项目)

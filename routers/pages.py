@@ -7,7 +7,17 @@ from datetime import datetime, timezone
 from typing import Optional, Set
 from urllib.parse import urlencode
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, Response, UploadFile, status
+from fastapi import (
+    APIRouter,
+    Depends,
+    File,
+    Form,
+    HTTPException,
+    Request,
+    Response,
+    UploadFile,
+    status,
+)
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import func
@@ -19,7 +29,13 @@ from core.config import settings
 from crud.crud_post import create_post, get_posts
 from database import get_db
 from services import post_service
-from web_deps import ADMIN_USERNAME, get_optional_user, get_or_set_csrf_cookie, is_admin, verify_csrf
+from web_deps import (
+    ADMIN_USERNAME,
+    get_optional_user,
+    get_or_set_csrf_cookie,
+    is_admin,
+    verify_csrf,
+)
 
 router = APIRouter()
 
@@ -181,10 +197,17 @@ def archive_page(
     month: Optional[str] = None,
     user: Optional[str] = Depends(get_optional_user),
 ):
-    posts = db.query(models.Post).filter(models.Post.deleted_at.is_(None)).order_by(models.Post.id.desc()).all()
+    posts = (
+        db.query(models.Post)
+        .filter(models.Post.deleted_at.is_(None))
+        .order_by(models.Post.id.desc())
+        .all()
+    )
     current_user_profile = _get_current_user_profile(db, user)
     if month:
-        filtered = [post for post in posts if get_month_key(getattr(post, "created_at", None)) == month]
+        filtered = [
+            post for post in posts if get_month_key(getattr(post, "created_at", None)) == month
+        ]
         return templates.TemplateResponse(
             request,
             "index.html",
@@ -208,7 +231,10 @@ def archive_page(
         if key and len(key) == 7 and key[4] == "-":
             counts[key] = counts.get(key, 0) + 1
 
-    archives = [{"month": k, "count": v} for k, v in sorted(counts.items(), key=lambda x: x[0], reverse=True)]
+    archives = [
+        {"month": k, "count": v}
+        for k, v in sorted(counts.items(), key=lambda x: x[0], reverse=True)
+    ]
     return templates.TemplateResponse(
         request,
         "index.html",
@@ -233,7 +259,9 @@ def top_page(
 ):
     current_user_profile = _get_current_user_profile(db, user)
     tech_counts = _get_tech_tag_counts(db)
-    tech_query = db.query(models.Post).filter(models.Post.deleted_at.is_(None), models.Post.tech_tag.in_(TECH_TAGS))
+    tech_query = db.query(models.Post).filter(
+        models.Post.deleted_at.is_(None), models.Post.tech_tag.in_(TECH_TAGS)
+    )
     tech_posts = tech_query.order_by(models.Post.id.desc()).all()
     tech_posts_by_tag = _group_tech_posts_by_tag(tech_posts)
     tech_stack = [
@@ -242,7 +270,9 @@ def top_page(
             "mark": tag[:1],
             "article_count": tech_counts[tag],
             "publish_label": f"Publish #{tag}",
-            "action_url": f"/create-post?{urlencode({'tech_tag': tag})}" if is_admin(user) else "/login",
+            "action_url": f"/create-post?{urlencode({'tech_tag': tag})}"
+            if is_admin(user)
+            else "/login",
         }
         for tag in TECH_TAGS
     ]
@@ -268,7 +298,12 @@ def top_page(
 
 @router.get("/random")
 def random_post(db: Session = Depends(get_db)):
-    post = db.query(models.Post).filter(models.Post.deleted_at.is_(None)).order_by(func.random()).first()
+    post = (
+        db.query(models.Post)
+        .filter(models.Post.deleted_at.is_(None))
+        .order_by(func.random())
+        .first()
+    )
     if not post:
         return RedirectResponse(url="/", status_code=status.HTTP_302_FOUND)
     return RedirectResponse(url=f"/posts/{post.id}", status_code=status.HTTP_302_FOUND)
@@ -331,7 +366,11 @@ def post_detail(
 
 
 @router.get("/create-post", response_class=HTMLResponse)
-def create_post_page(request: Request, db: Session = Depends(get_db), user: str = Depends(security.get_current_user_from_cookie)):
+def create_post_page(
+    request: Request,
+    db: Session = Depends(get_db),
+    user: str = Depends(security.get_current_user_from_cookie),
+):
     if not is_admin(user):
         raise HTTPException(status_code=403, detail=f"只有管理员 {ADMIN_USERNAME} 可以发布文章")
     preselected_tech_tag = request.query_params.get("tech_tag") or ""
@@ -419,4 +458,8 @@ def delete_post(
 
 @router.get("/ui/buttons", response_class=HTMLResponse)
 def ui_buttons(request: Request, user: Optional[str] = Depends(get_optional_user)):
-    return templates.TemplateResponse(request, "button_variants.html", {"request": request, "user": user, "current_user_avatar_path": None})
+    return templates.TemplateResponse(
+        request,
+        "button_variants.html",
+        {"request": request, "user": user, "current_user_avatar_path": None},
+    )

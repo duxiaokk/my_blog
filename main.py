@@ -40,7 +40,11 @@ async def auth_exception_handler(request: Request, exc: HTTPException):
         if request.method.upper() == "GET" and wants_html:
             return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
 
-        detail = exc.detail if isinstance(exc.detail, str) and exc.detail.strip() else "\u672a\u767b\u5f55"
+        detail = (
+            exc.detail
+            if isinstance(exc.detail, str) and exc.detail.strip()
+            else "\u672a\u767b\u5f55"
+        )
         return JSONResponse(status_code=status.HTTP_401_UNAUTHORIZED, content={"detail": detail})
     return await http_exception_handler(request, exc)
 
