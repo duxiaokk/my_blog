@@ -36,6 +36,7 @@ blog.db
 *.swo
 .tmp/
 .tmp_dbinspect/
+.npm-cache/
 .uv-cache-local/
 pytest-cache-files-*/
 
