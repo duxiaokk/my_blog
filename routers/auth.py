@@ -15,6 +15,8 @@ from schemas.user import AuthResponse, UserLogin
 from services.auth_service import (
     authenticate_user,
     change_user_avatar,
+)
+from services.auth_service import (
     register_user as register_user_service,
 )
 

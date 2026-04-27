@@ -15,6 +15,7 @@ redis
 alembic
 pytest
 httpx
+zhipuai
 
 # Optional later for async migration
 # aiosqlite

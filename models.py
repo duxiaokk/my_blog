@@ -112,3 +112,47 @@ class EventLog(Base):
         Index("ix_event_logs_event_created", "event_name", "created_at"),
         Index("ix_event_logs_session_created", "session_id", "created_at"),
     )
+
+class AgentTask(Base):
+    __tablename__ = "agent_tasks"
+
+    id = Column(Integer, primary_key=True, index=True)
+    task_type = Column(String(64), nullable=False, index=True)
+    status = Column(String(32), default="pending", nullable=False, index=True)
+
+    target_type = Column(String(64), nullable=True, index=True)
+    target_id = Column(Integer, nullable=True, index=True)
+
+    input_data = Column(Text, nullable=True)
+    result_data = Column(Text, nullable=True)
+    error_message = Column(Text, nullable=True)
+
+    retry_count = Column(Integer, default=0, nullable=False)
+
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), index=True)
+    updated_at = Column(
+        DateTime,
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+        index=True,
+    )
+
+
+class AgentDraft(Base):
+    __tablename__ = "agent_drafts"
+
+    id = Column(Integer, primary_key=True, index=True)
+    draft_type = Column(String(64), nullable=False, index=True)
+    status = Column(String(32), default="pending_review", nullable=False, index=True)
+
+    title = Column(String(255), nullable=True)
+    content = Column(Text, nullable=False)
+
+    target_type = Column(String(64), nullable=True, index=True)
+    target_id = Column(Integer, nullable=True, index=True)
+
+    created_by = Column(String(64), default="agent", nullable=False)
+    reviewed_by = Column(String(150), nullable=True)
+
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), index=True)
+    reviewed_at = Column(DateTime, nullable=True)

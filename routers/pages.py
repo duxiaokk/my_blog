@@ -21,6 +21,7 @@ from fastapi.templating import Jinja2Templates
 import security
 from database import get_db
 from services.page_service import (
+    TECH_TAGS,
     build_about_page_data,
     build_archive_page_data,
     build_create_post_page_data,
@@ -30,10 +31,15 @@ from services.page_service import (
     create_blog_post,
     get_random_post,
     remove_blog_post,
-    TECH_TAGS,
     toggle_blog_post_like,
 )
-from web_deps import ADMIN_USERNAME, get_optional_user, get_or_set_csrf_cookie, is_admin, verify_csrf
+from web_deps import (
+    ADMIN_USERNAME,
+    get_optional_user,
+    get_or_set_csrf_cookie,
+    is_admin,
+    verify_csrf,
+)
 
 router = APIRouter()
 
