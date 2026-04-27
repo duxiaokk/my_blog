@@ -239,68 +239,9 @@ curl -s -X POST "http://127.0.0.1:8000/posts/1/comments" \
 | `python tasks.py db-upgrade head` | Apply Alembic migrations |
 | `python -m alembic upgrade head` | Direct migration command |
 
-## Contributing
-
-### Branch Strategy
-
-- `feature/*` for new functionality.
-- `fix/*` for bug fixes.
-- `docs/*` for documentation-only changes.
-- `chore/*` for maintenance work.
-
-### Commit Message Convention
-
-- Use `type(scope): summary`.
-- Keep the subject short and imperative.
-- Good examples: `docs(readme): rewrite onboarding`, `fix(auth): handle missing avatar`.
-
-### Pull Request Flow
-
-1. Create a focused branch.
-2. Run `python tasks.py lint` and `python tasks.py test`.
-3. Open a PR with a clear summary and screenshots if the UI changed.
-4. Request review after the branch is green.
-5. Keep each PR scoped to one logical change.
-
-### Code of Conduct
-
-- Be respectful and constructive.
-- Prefer specific feedback over personal judgment.
-- Assume good intent, ask before changing shared conventions, and avoid hostile language.
-
-## FAQ
-
-### 1. Do I need MySQL to run the project?
-
-No. SQLite is the default. You only need MySQL if you want to mirror a production-style setup.
-
-### 2. Where do I change the admin account?
-
-Set `ADMIN_USERNAME` in `.env`. The default value is `Ado_Jk`.
-
-### 3. Why is there a CSRF token endpoint?
-
-Some state-changing requests use cookie auth, so the frontend fetches a CSRF token before posting.
-
-### 4. How do I run the fastest local check?
-
-Use `python tasks.py lint` for code checks and `python tasks.py test` for the regression suite.
-
 ## Changelog
 
 No tagged releases exist yet, so this section tracks local milestones in reverse chronological order.
 
 - `2026-04-27` - Removed the AI persona chat module and dropped the related database tables.
 - `2026-04-27` - Refreshed the README structure, examples, and contribution guidance.
-
-## License
-
-This repository does not ship with a separate open-source license file yet.
-
-If you plan to reuse the code, confirm the intended licensing terms with the repository owner first.
-
-## Authors and Acknowledgments
-
-- Author: Ado_Jk
-- Built with FastAPI, SQLAlchemy, Jinja2, Alembic, Ruff, and pytest.
-- Thanks to the open-source Python ecosystem for making this project small, testable, and easy to extend.
