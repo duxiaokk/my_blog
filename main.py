@@ -8,7 +8,7 @@ from fastapi.exception_handlers import http_exception_handler
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
-from routers import auth, chat, comments, pages, posts
+from routers import auth, comments, pages, posts
 from web_deps import get_or_set_csrf_cookie
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -29,7 +29,6 @@ app.include_router(auth.router)
 app.include_router(comments.router)
 app.include_router(posts.router)
 app.include_router(pages.router)
-app.include_router(chat.router)
 
 
 @app.exception_handler(HTTPException)

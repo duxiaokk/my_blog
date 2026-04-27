@@ -15,7 +15,6 @@ redis
 alembic
 pytest
 httpx
-
 # Optional later for async migration
 # aiosqlite
 # aiomysql

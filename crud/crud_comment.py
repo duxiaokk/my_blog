@@ -1,8 +1,7 @@
 from __future__ import annotations
 
-from typing import Iterable, List, Optional, Sequence, Set, Tuple
+from typing import Optional, Sequence, Set, Tuple
 
-from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 import models

@@ -18,7 +18,7 @@ __pycache__/
 venv/
 .venv/
 env/
-.env  # ⚠️ 极其重要！绝对不能把包含真实密钥的 .env 传到仓库里
+.env
 
 # =========================
 # 3. 数据库文件 (根据情况)
@@ -36,6 +36,7 @@ blog.db
 *.swo
 .tmp/
 .tmp_dbinspect/
+.npm-cache/
 .uv-cache-local/
 pytest-cache-files-*/
 
