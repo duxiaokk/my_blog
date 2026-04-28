@@ -18,11 +18,6 @@ enough to practice real-world patterns such as auth, migrations, CSRF protection
 这个项目的目标是做一个“足够小、又足够真实”的后端练习场，方便在同一套代码里练习认证、迁移、
 CSRF、分页、点赞和实时推送等常见能力。
 
-The codebase is intentionally simple, so you can trace a request from route to service to CRUD to database
-without getting lost in framework ceremony.
-
-代码结构保持克制，方便你从路由一路追到服务层、CRUD 和数据库，而不会被过多框架样板淹没。
-
 ## Table of Contents
 
 - [Features](#features)
@@ -32,11 +27,7 @@ without getting lost in framework ceremony.
 - [Configuration](#configuration)
 - [Usage Examples](#usage-examples)
 - [API and Commands](#api-and-commands)
-- [Contributing](#contributing)
-- [FAQ](#faq)
-- [Changelog](#changelog)
-- [License](#license)
-- [Authors and Acknowledgments](#authors-and-acknowledgments)
+(#authors-and-acknowledgments)
 
 ## Features
 
