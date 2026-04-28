@@ -69,7 +69,6 @@ class Settings(BaseSettings):
         default="Python,FastAPI,SQLAlchemy,SQLite",
         validation_alias=AliasChoices("TECH_TAGS", "TECH_TAGS_RAW", "tech_tags_raw"),
     )
-    zhipuai_api_key: Optional[str] = None
     redis_url: Optional[str] = None
 
     @property
@@ -104,7 +103,6 @@ def _load_fallback_settings() -> Settings:
             "refresh_token_expire_days": _parse_int(os.getenv("REFRESH_TOKEN_EXPIRE_DAYS"), 30),
             "admin_username": os.getenv("ADMIN_USERNAME", "Ado_Jk"),
             "TECH_TAGS": os.getenv("TECH_TAGS", "Python,FastAPI,SQLAlchemy,SQLite"),
-            "zhipuai_api_key": os.getenv("ZHIPUAI_API_KEY"),
             "redis_url": os.getenv("REDIS_URL") or None,
         }
     )
